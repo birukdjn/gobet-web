@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
 
 export default function PassengerDashboard() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function PassengerDashboard() {
   const [loading, setLoading] = useState(false);
   const [trips, setTrips] = useState<any[]>([]);
   const [error, setError] = useState("");
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   const [showDriverModal, setShowDriverModal] = useState(false);
   const [licenseNumber, setLicenseNumber] = useState("");
@@ -19,7 +21,16 @@ export default function PassengerDashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) router.push("/login");
+    if (!token) return router.push("/login");
+
+    try {
+      type JwtPayload = { role: string };
+      const payload: JwtPayload = jwtDecode(token);
+      setUserRole(payload.role); //
+    } catch (err) {
+      localStorage.removeItem("token");
+      router.push("/login");
+    }
   }, [router]);
 
   useEffect(() => {
@@ -67,7 +78,7 @@ export default function PassengerDashboard() {
     try {
       setRequestingDriver(true);
       await api.post("/Driver/request-driver", { licenseNumber });
-      alert("Driver request submitted!");
+      alert("Your request has been submitted. Wait for admin approval.");
       setShowDriverModal(false);
       setLicenseNumber("");
     } catch (err: any) {
@@ -76,6 +87,7 @@ export default function PassengerDashboard() {
       setRequestingDriver(false);
     }
   };
+
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -87,12 +99,14 @@ export default function PassengerDashboard() {
           </h1>
           {/* Request Driver Button */}
           <div className=" flex gap-4">
-            <button
-              onClick={() => setShowDriverModal(true)}
-              className="bg-gray-800 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition"
-            >
-              Request a Driver
-            </button>
+            {userRole === "Passenger" && (
+              <button
+                onClick={() => setShowDriverModal(true)}
+                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition"
+              >
+                Request to Become a Driver
+              </button>
+            )}
             <button
               onClick={() => {
                 localStorage.removeItem("token");
@@ -108,28 +122,27 @@ export default function PassengerDashboard() {
 
       <section className="max-w-7xl mx-auto px-6 py-10">
 
-        {/* Driver Request Modal */}
         {showDriverModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-              <h2 className="text-lg text-gray-800 font-semibold mb-4">Request a Driver</h2>
+              <h2 className="text-lg font-semibold mb-4">Request to be a Driver</h2>
               <input
                 placeholder="Driver License Number"
                 value={licenseNumber}
                 onChange={(e) => setLicenseNumber(e.target.value)}
-                className="w-full text-gray-500 border rounded-md px-3 py-2 mb-4 focus:ring-2 focus:ring-gray-900 focus:outline-none"
+                className="w-full border rounded-md px-3 py-2 mb-4 focus:ring-2 focus:ring-gray-900 focus:outline-none"
               />
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowDriverModal(false)}
-                  className="px-4 py-2 rounded-md text-gray-600 border hover:bg-gray-100 hover:cursor-pointer transition"
+                  className="px-4 py-2 rounded-md border hover:bg-gray-100 transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={requestDriver}
                   disabled={requestingDriver || !licenseNumber}
-                  className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-700 hover:cursor-pointer transition disabled:opacity-50"
+                  className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
                 >
                   {requestingDriver ? "Requesting..." : "Request"}
                 </button>
@@ -137,6 +150,7 @@ export default function PassengerDashboard() {
             </div>
           </div>
         )}
+
 
         {/* Search Buses */}
         <div className="bg-white border rounded-lg p-6 shadow-sm mb-8">
