@@ -4,30 +4,24 @@ import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
 
-type Trip = {
-  id: string;
-  destination: string;
-  availableSeats: number;
-  departureTime: string;
-  driverName?: string;
-};
-
 export default function PassengerDashboard() {
   const router = useRouter();
   const [destination, setDestination] = useState("");
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<any[]>([]);
   const [error, setError] = useState("");
 
-  // 🔐 Redirect if not authenticated
+  const [showDriverModal, setShowDriverModal] = useState(false);
+  const [licenseNumber, setLicenseNumber] = useState("");
+  const [requestingDriver, setRequestingDriver] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) router.push("/login");
   }, [router]);
 
-  // 🌍 Get user location
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -69,6 +63,20 @@ export default function PassengerDashboard() {
     }
   };
 
+  const requestDriver = async () => {
+    try {
+      setRequestingDriver(true);
+      await api.post("/Driver/request-driver", { licenseNumber });
+      alert("Driver request submitted!");
+      setShowDriverModal(false);
+      setLicenseNumber("");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Request failed");
+    } finally {
+      setRequestingDriver(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -77,21 +85,60 @@ export default function PassengerDashboard() {
           <h1 className="text-lg font-semibold text-gray-900">
             Passenger Dashboard
           </h1>
-          <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              router.push("/login");
-            }}
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
-            Logout
-          </button>
+          {/* Request Driver Button */}
+          <div className=" flex gap-4">
+            <button
+              onClick={() => setShowDriverModal(true)}
+              className="bg-gray-800 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition"
+            >
+              Request a Driver
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                router.push("/login");
+              }}
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Content */}
       <section className="max-w-7xl mx-auto px-6 py-10">
-        {/* Search */}
+
+        {/* Driver Request Modal */}
+        {showDriverModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+              <h2 className="text-lg text-gray-800 font-semibold mb-4">Request a Driver</h2>
+              <input
+                placeholder="Driver License Number"
+                value={licenseNumber}
+                onChange={(e) => setLicenseNumber(e.target.value)}
+                className="w-full text-gray-500 border rounded-md px-3 py-2 mb-4 focus:ring-2 focus:ring-gray-900 focus:outline-none"
+              />
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowDriverModal(false)}
+                  className="px-4 py-2 rounded-md text-gray-600 border hover:bg-gray-100 hover:cursor-pointer transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={requestDriver}
+                  disabled={requestingDriver || !licenseNumber}
+                  className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-700 hover:cursor-pointer transition disabled:opacity-50"
+                >
+                  {requestingDriver ? "Requesting..." : "Request"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search Buses */}
         <div className="bg-white border rounded-lg p-6 shadow-sm mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Find buses
@@ -104,7 +151,6 @@ export default function PassengerDashboard() {
               onChange={(e) => setDestination(e.target.value)}
               className="flex-1 border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
             />
-
             <button
               onClick={searchBuses}
               disabled={loading}
@@ -114,12 +160,10 @@ export default function PassengerDashboard() {
             </button>
           </div>
 
-          {error && (
-            <p className="text-red-500 text-sm mt-3">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
         </div>
 
-        {/* Results */}
+        {/* Trips */}
         <div className="space-y-4">
           {trips.length === 0 && (
             <p className="text-sm text-gray-500">
