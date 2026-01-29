@@ -4,7 +4,12 @@ import { useState } from "react";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { EyeIcon, EyeSlashIcon}  from "@heroicons/react/24/outline";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { jwtDecode } from "jwt-decode";
+
+type JwtPayload = {
+  "http://schemas.microsoft.com/ws/2008/06/identity/claims/role": string;
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,7 +28,14 @@ export default function LoginPage() {
       setLoading(true);
       const res = await api.post("/Auth/login", form);
       localStorage.setItem("token", res.data.token);
-      router.push("/passenger/dashboard");
+
+      const decoded = jwtDecode<JwtPayload>(res.data.token);
+      const role =
+        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+
+      if (role === "Admin") router.push("/admin/dashboard");
+      else if (role === "Driver") router.push("/driver/dashboard");
+      else router.push("/passenger/dashboard");
     } catch (err: any) {
       setError(err.response?.data?.message || "Login failed");
     } finally {
@@ -39,8 +51,10 @@ export default function LoginPage() {
   };
 
   const loginWithFacebook = () => {
-    window.location.href =
-      "https://localhost:7170/api/Auth/login-facebook?redirectUrl=http://localhost:3000/auth/callback";
+    const nextjsCallback = "http://localhost:3000/auth/callback";
+    window.location.href = `https://localhost:7170/api/Auth/login-facebook?redirectUrl=${encodeURIComponent(
+      nextjsCallback
+    )}`;
   };
 
   return (
