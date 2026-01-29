@@ -4,18 +4,14 @@ import { useState } from "react";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { EyeIcon, EyeSlashIcon}  from "@heroicons/react/24/outline";
 
 export default function LoginPage() {
-
-  
-
   const router = useRouter();
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -26,12 +22,8 @@ export default function LoginPage() {
     try {
       setLoading(true);
       const res = await api.post("/Auth/login", form);
-
-      // Save token to localStorage (or cookie)
       localStorage.setItem("token", res.data.token);
-
-      // Redirect after login
-      router.push("/dashboard");
+      router.push("/passenger/dashboard");
     } catch (err: any) {
       setError(err.response?.data?.message || "Login failed");
     } finally {
@@ -39,15 +31,17 @@ export default function LoginPage() {
     }
   };
 
-const loginWithGoogle = () => {
-  window.location.href =
-    "https://localhost:7170/api/Auth/login-google?redirectUrl=http://localhost:3000/auth/callback";
-};
+  const loginWithGoogle = () => {
+    const nextjsCallback = "http://localhost:3000/auth/callback";
+    window.location.href = `https://localhost:7170/api/auth/login-google?redirectUrl=${encodeURIComponent(
+      nextjsCallback
+    )}`;
+  };
 
-const loginWithFacebook = () => {
-  window.location.href =
-    "https://localhost:7170/api/Auth/login-facebook?redirectUrl=http://localhost:3000/auth/callback";
-};
+  const loginWithFacebook = () => {
+    window.location.href =
+      "https://localhost:7170/api/Auth/login-facebook?redirectUrl=http://localhost:3000/auth/callback";
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -76,14 +70,29 @@ const loginWithFacebook = () => {
             onChange={handleChange}
             className="w-full border text-gray-900 rounded-md px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
           />
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            className="w-full border text-gray-900 rounded-md px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
-          />
+
+          {/* Password with eye toggle */}
+          <div className="relative">
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={form.password}
+              onChange={handleChange}
+              className="w-full border text-gray-900 rounded-md px-3 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
+            >
+              {showPassword ? (
+                <EyeSlashIcon className="w-5 h-5" />
+              ) : (
+                <EyeIcon className="w-5 h-5" />
+              )}
+            </button>
+          </div>
 
           <button
             onClick={login}
@@ -122,7 +131,10 @@ const loginWithFacebook = () => {
         {/* Register link */}
         <p className="text-center text-sm text-gray-500 mt-6">
           Don't have an account?{" "}
-          <Link href="/register" className="text-gray-900 font-medium hover:underline">
+          <Link
+            href="/register"
+            className="text-gray-900 font-medium hover:underline"
+          >
             Sign up
           </Link>
         </p>

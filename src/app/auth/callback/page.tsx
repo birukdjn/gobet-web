@@ -22,7 +22,7 @@ export default function AuthCallbackPage() {
       localStorage.setItem("token", token);
 
       // Redirect to dashboard
-      router.replace("/dashboard");
+      router.replace("/passenger/dashboard");
     } else {
       setMessage("No token found. Login failed.");
     }
