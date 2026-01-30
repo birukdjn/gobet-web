@@ -25,12 +25,16 @@ export default function AdminDashboardPage() {
                 <div className="grid text-gray-700 grid-cols-1 md:grid-cols-6 gap-6 mb-10">
                     <StatsCard title="Total Users" value={stats?.usersCount || 0} />
                     <StatsCard title="Active Users" value={stats?.activeUsersCount || 0} />
+                    <StatsCard title="Total Admins" value={stats?.adminsCount || 0} />
+                    <StatsCard title="Active Admins" value={stats?.activeAdminsCount || 0} />
                     <StatsCard title="Total Drivers" value={stats?.driversCount || 0} />
                     <StatsCard title="Active Drivers" value={stats?.activeDriversCount || 0} />
                     <StatsCard title="Total Passengers" value={stats?.passengersCount || 0} />
                     <StatsCard title="Active Passengers" value={stats?.activePassengersCount || 0} />
                     <StatsCard title="Total Trips" value={stats?.tripsCount || 0} />
+                    <StatsCard title="Active Trips" value={stats?.activeTripsCount || 0} />
                     <StatsCard title="Total Bookings" value={stats?.bookingsCount || 0} />
+                    <StatsCard title="Pending Requests" value={stats?.pendingBookingsCount || 0} />
                 </div>
 
                 {/* Users Management */}
