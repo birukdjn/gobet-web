@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { useAuth } from "@/hooks/useAuth";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
+import { useRouter } from "next/navigation";
 
 type Trip = {
   id: string;
@@ -16,7 +14,7 @@ type Trip = {
 };
 
 export default function DriverDashboard() {
-  const { logout } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
@@ -29,6 +27,13 @@ export default function DriverDashboard() {
     busPlateNumber: "",
   });
 
+  // 🔐 Protect route
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) router.push("/login");
+  }, [router]);
+
+  // 🔍 Load active trip (if any)
   useEffect(() => {
     loadActiveTrip();
   }, []);
@@ -42,7 +47,7 @@ export default function DriverDashboard() {
     }
   };
 
-  // 📍 Live location update
+  // 📍 Live location update every 10 seconds
   useEffect(() => {
     if (!activeTrip) return;
 
@@ -97,18 +102,26 @@ export default function DriverDashboard() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-lg font-semibold text-gray-900">
             Driver Dashboard
           </h1>
-          <Button variant="ghost" onClick={logout}>
+          <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              router.push("/login");
+            }}
+            className="text-sm text-gray-600 hover:text-gray-900"
+          >
             Logout
-          </Button>
+          </button>
         </div>
       </header>
 
       <section className="max-w-5xl mx-auto px-6 py-10 space-y-10">
+        {/* Active Trip */}
         {activeTrip && (
           <div className="bg-white border rounded-lg p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -132,25 +145,30 @@ export default function DriverDashboard() {
 
               <div className="flex gap-3">
                 {activeTrip.status === "Scheduled" && (
-                  <Button onClick={startTrip} disabled={loading}>
+                  <button
+                    onClick={startTrip}
+                    disabled={loading}
+                    className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-black transition disabled:opacity-60"
+                  >
                     Start Trip
-                  </Button>
+                  </button>
                 )}
 
                 {activeTrip.status === "InProgress" && (
-                  <Button
-                    variant="secondary"
+                  <button
                     onClick={completeTrip}
                     disabled={loading}
+                    className="bg-gray-200 text-gray-900 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-300 transition disabled:opacity-60"
                   >
                     Complete Trip
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>
           </div>
         )}
 
+        {/* Create Trip */}
         {!activeTrip && (
           <div className="bg-white border rounded-lg p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -158,45 +176,55 @@ export default function DriverDashboard() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
+              <input
                 placeholder="Destination"
                 value={form.destination}
                 onChange={(e) =>
                   setForm({ ...form, destination: e.target.value })
                 }
+                className="border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
               />
 
-              <Input
+              <input
                 placeholder="Bus Plate Number"
                 value={form.busPlateNumber}
                 onChange={(e) =>
                   setForm({ ...form, busPlateNumber: e.target.value })
                 }
+                className="border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
               />
 
-              <Input
+              <input
                 type="number"
                 placeholder="Total Seats"
                 value={form.totalSeats}
                 onChange={(e) =>
                   setForm({ ...form, totalSeats: Number(e.target.value) })
                 }
+                className="border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
               />
 
-              <Input
+              <input
                 placeholder="Route ID"
                 value={form.routeId}
                 onChange={(e) =>
                   setForm({ ...form, routeId: e.target.value })
                 }
+                className="border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
               />
             </div>
 
-            {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+            {error && (
+              <p className="text-red-500 text-sm mt-3">{error}</p>
+            )}
 
-            <Button onClick={createTrip} disabled={creating} className="mt-5">
+            <button
+              onClick={createTrip}
+              disabled={creating}
+              className="mt-5 bg-gray-900 text-white px-6 py-2.5 rounded-md text-sm font-medium hover:bg-black transition disabled:opacity-60"
+            >
               {creating ? "Creating..." : "Create Trip"}
-            </Button>
+            </button>
           </div>
         )}
       </section>

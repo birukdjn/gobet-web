@@ -68,7 +68,7 @@ export function getUserFromToken() {
     id: decoded.sub,
     email: decoded.email,
     roles: getUserRoles(),
-    role: getPrimaryRole(), // convenience
+    role: getPrimaryRole(),
   };
 }
 

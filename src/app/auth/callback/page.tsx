@@ -2,11 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
-
-type JwtPayload = {
-  "http://schemas.microsoft.com/ws/2008/06/identity/claims/role": string;
-};
+import { getPrimaryRole, saveToken } from "@/auth/auth.service";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -16,21 +12,16 @@ export default function AuthCallbackPage() {
     const token = params.get("token");
     if (!token) return;
 
-    localStorage.setItem("token", token);
+    saveToken(token);
+    const role = getPrimaryRole();
 
-    const decoded = jwtDecode<JwtPayload>(token);
-    const role =
-      decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-
-    if (role === "Admin") router.replace("/admin/dashboard");
-    else if (role === "Driver") router.replace("/driver/dashboard");
-    else router.replace("/passenger/dashboard");
-  }, []);
-
-
+    if (role === "Admin") router.replace("/admin");
+    else if (role === "Driver") router.replace("/driver");
+    else router.replace("/passenger");
+  }, [params, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white rounded-lg p-6 shadow-md text-center">
         <p className="text-gray-700">Signing you in...</p>
       </div>

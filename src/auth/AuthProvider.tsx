@@ -2,11 +2,19 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
+import {
+    clearToken,
+    getPrimaryRole,
+    getToken,
+    getUserFromToken,
+    saveToken,
+} from "@/auth/auth.service";
 
 type User = {
-    role: string;
+    id?: string;
     email?: string;
+    role: string;
+    roles?: string[];
 };
 
 type AuthContextType = {
@@ -25,40 +33,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Load session on refresh
     useEffect(() => {
-        const stored = localStorage.getItem("token");
+        const stored = getToken();
         if (!stored) {
             setLoading(false);
             return;
         }
 
-        try {
-            const payload: any = jwtDecode(stored);
-            setUser({ role: payload.role, email: payload.email });
-            setToken(stored);
-        } catch {
-            localStorage.removeItem("token");
-        } finally {
+        const userData = getUserFromToken();
+        if (!userData) {
+            clearToken();
             setLoading(false);
+            return;
         }
+
+        setUser({
+            ...userData,
+            role: userData.role || "Passenger",
+        });
+        setToken(stored);
+        setLoading(false);
     }, []);
 
+
+
     const login = (jwt: string) => {
-        localStorage.setItem("token", jwt);
-        const payload: any = jwtDecode(jwt);
-        setUser({ role: payload.role, email: payload.email });
+        saveToken(jwt);
+
+        const userData = getUserFromToken();
+        if (!userData) return;
+
+        const userWithRole = {
+            ...userData,
+            role: userData.role || "Passenger",
+        };
+
+        setUser(userWithRole);
         setToken(jwt);
 
-        if (payload.role === "Admin") router.push("/admin");
-        else if (payload.role === "Driver") router.push("/driver");
-        else router.push("/passenger");
+        switch (userWithRole.role) {
+            case "Admin":
+                router.replace("/admin");
+                break;
+            case "Driver":
+                router.replace("/driver");
+                break;
+            default:
+                router.replace("/passenger");
+        }
     };
 
     const logout = () => {
-        localStorage.removeItem("token");
+        clearToken();
         setUser(null);
         setToken(null);
-        router.push("/login");
+        router.replace("/login");
     };
 
     return (
