@@ -2,58 +2,51 @@
 
 import { useState } from "react";
 import api from "@/lib/api";
-import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import { jwtDecode } from "jwt-decode";
-
-type JwtPayload = {
-  "http://schemas.microsoft.com/ws/2008/06/identity/claims/role": string;
-};
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { login } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const login = async () => {
+  const submit = async () => {
     setError("");
+    setShowForgot(false);
+
     try {
       setLoading(true);
       const res = await api.post("/Auth/login", form);
-      localStorage.setItem("token", res.data.token);
-
-      const decoded = jwtDecode<JwtPayload>(res.data.token);
-      const role =
-        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-
-      if (role === "Admin") router.push("/admin/dashboard");
-      else if (role === "Driver") router.push("/driver/dashboard");
-      else router.push("/passenger/dashboard");
+      login(res.data.token);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Login failed");
+      setError(err.response?.data?.message || "Invalid email or password");
+      setShowForgot(true);
     } finally {
       setLoading(false);
     }
   };
 
   const loginWithGoogle = () => {
-    const nextjsCallback = "http://localhost:3000/auth/callback";
-    window.location.href = `https://localhost:7170/api/auth/login-google?redirectUrl=${encodeURIComponent(
-      nextjsCallback
+    const callback = "http://localhost:3000/auth/callback";
+    window.location.href = `https://localhost:7170/api/Auth/login-google?redirectUrl=${encodeURIComponent(
+      callback
     )}`;
   };
 
   const loginWithFacebook = () => {
-    const nextjsCallback = "http://localhost:3000/auth/callback";
+    const callback = "http://localhost:3000/auth/callback";
     window.location.href = `https://localhost:7170/api/Auth/login-facebook?redirectUrl=${encodeURIComponent(
-      nextjsCallback
+      callback
     )}`;
   };
 
@@ -67,33 +60,34 @@ export default function LoginPage() {
           Log in to continue to GoBet
         </p>
 
-        {/* Error */}
         {error && (
-          <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
             {error}
           </div>
         )}
 
-        {/* Form */}
+
+
         <div className="space-y-5">
-          <input
+          <Input
             name="email"
             type="email"
+            required = {true}
             placeholder="Email address"
             value={form.email}
             onChange={handleChange}
-            className="w-full border text-gray-900 rounded-md px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+            
           />
 
-          {/* Password with eye toggle */}
           <div className="relative">
-            <input
+            <Input
               name="password"
               type={showPassword ? "text" : "password"}
               placeholder="Password"
               value={form.password}
               onChange={handleChange}
-              className="w-full border text-gray-900 rounded-md px-3 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+              className="pr-12"
+              required
             />
             <button
               type="button"
@@ -107,14 +101,22 @@ export default function LoginPage() {
               )}
             </button>
           </div>
+          <div className="flex flex-col  justify-between gap-3 items-center">
+            <Button onClick={submit} disabled={loading}>
+              {loading ? "Logging in..." : "Log in"}
+            </Button>
 
-          <button
-            onClick={login}
-            disabled={loading}
-            className="w-full bg-gray-900 hover:bg-black text-white rounded-md py-3 text-sm font-semibold transition disabled:opacity-60"
-          >
-            {loading ? "Logging in..." : "Log in"}
-          </button>
+            {showForgot && (
+              <div className="mb-4 text-sm text-right">
+                <Link
+                  href="/forgot-password"
+                  className="text-gray-900 font-medium hover:underline"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3 my-5">
@@ -123,26 +125,18 @@ export default function LoginPage() {
           <div className="flex-1 h-px bg-gray-200" />
         </div>
 
-        {/* Social login */}
-        <div className="flex gap-3">
-          <button
-            onClick={loginWithGoogle}
-            className="w-full flex items-center justify-center gap-3 border rounded-md py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-          >
+        <div className="flex flex-col sm:flex-row  gap-6">
+          <Button variant="secondary" onClick={loginWithGoogle}>
             <img src="/google.svg" className="w-5 h-5" />
             Continue with Google
-          </button>
+          </Button>
 
-          <button
-            onClick={loginWithFacebook}
-            className="w-full flex items-center justify-center gap-3 border rounded-md py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-          >
+          <Button variant="secondary" onClick={loginWithFacebook}>
             <img src="/facebook.svg" className="w-5 h-5" />
             Continue with Facebook
-          </button>
+          </Button>
         </div>
 
-        {/* Register link */}
         <p className="text-center text-sm text-gray-500 mt-6">
           Don't have an account?{" "}
           <Link

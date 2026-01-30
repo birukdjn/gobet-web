@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function RegisterPage() {
-    const router = useRouter();
     const [form, setForm] = useState({
         fullName: "",
         email: "",
@@ -26,15 +26,13 @@ export default function RegisterPage() {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    // ---- Password rules ----
     const rules = [
-        { key: "length", text: "At least 6 characters", valid: form.password.length >= 6 },
-        { key: "upper", text: "One uppercase letter", valid: /[A-Z]/.test(form.password) },
-        { key: "lower", text: "One lowercase letter", valid: /[a-z]/.test(form.password) },
-        { key: "number", text: "One number", valid: /[0-9]/.test(form.password) },
-        { key: "special", text: "One special character", valid: /[^A-Za-z0-9]/.test(form.password) },
+        { text: "At least 6 characters", valid: form.password.length >= 6 },
+        { text: "One uppercase letter", valid: /[A-Z]/.test(form.password) },
+        { text: "One lowercase letter", valid: /[a-z]/.test(form.password) },
+        { text: "One number", valid: /[0-9]/.test(form.password) },
+        { text: "One special character", valid: /[^A-Za-z0-9]/.test(form.password) },
         {
-            key: "match",
             text: "Passwords match",
             valid: form.password.length > 0 && form.password === form.confirmPassword,
         },
@@ -42,7 +40,6 @@ export default function RegisterPage() {
 
     const isPasswordValid = rules.every((r) => r.valid);
 
-    // ---- Progressive rule engine ----
     useEffect(() => {
         if (!form.password && !form.confirmPassword) {
             setShowRule(false);
@@ -50,20 +47,19 @@ export default function RegisterPage() {
             return;
         }
 
-        const currentRule = rules[currentRuleIndex];
+        const rule = rules[currentRuleIndex];
         setShowRule(true);
 
-        if (currentRule?.valid) {
-            const timer = setTimeout(() => {
+        if (rule?.valid) {
+            const t = setTimeout(() => {
                 setCurrentRuleIndex((i) => Math.min(i + 1, rules.length - 1));
             }, 700);
-            return () => clearTimeout(timer);
+            return () => clearTimeout(t);
         }
     }, [form.password, form.confirmPassword, currentRuleIndex]);
 
-    const register = async () => {
+    const submit = async () => {
         setError("");
-
         if (!isPasswordValid) {
             setError("Please complete all password requirements.");
             return;
@@ -71,14 +67,13 @@ export default function RegisterPage() {
 
         try {
             setLoading(true);
-            const payload = {
+            await api.post("/Auth/register", {
                 fullName: form.fullName,
                 email: form.email,
                 phoneNumber: form.phoneNumber,
                 password: form.password,
-            };
-            await api.post("/Auth/register", payload);
-            router.push("/login");
+            });
+            window.location.href = "/login";
         } catch (err: any) {
             setError(err.response?.data?.message || "Registration failed");
         } finally {
@@ -87,13 +82,17 @@ export default function RegisterPage() {
     };
 
     const loginWithGoogle = () => {
-        window.location.href =
-            "https://localhost:7170/api/Auth/login-google?redirectUrl=http://localhost:3000/auth/callback";
+        const callback = "http://localhost:3000/auth/callback";
+        window.location.href = `https://localhost:7170/api/Auth/login-google?redirectUrl=${encodeURIComponent(
+            callback
+        )}`;
     };
 
     const loginWithFacebook = () => {
-        window.location.href =
-            "https://localhost:7170/api/Auth/login-facebook?redirectUrl=http://localhost:3000/auth/callback";
+        const callback = "http://localhost:3000/auth/callback";
+        window.location.href = `https://localhost:7170/api/Auth/login-facebook?redirectUrl=${encodeURIComponent(
+            callback
+        )}`;
     };
 
     const rule = rules[currentRuleIndex];
@@ -108,47 +107,41 @@ export default function RegisterPage() {
                     Sign up to continue to GoBet
                 </p>
 
-                {/* Error */}
                 {error && (
                     <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
                         {error}
                     </div>
                 )}
 
-                {/* Form */}
                 <div className="space-y-5">
-                    <input
+                    <Input
                         name="email"
                         type="email"
                         placeholder="Email address"
                         onChange={handleChange}
-                        className="w-full border text-gray-900 rounded-md px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                     />
 
                     <div className="flex gap-4">
-                        <input
+                        <Input
                             name="fullName"
                             placeholder="Full name"
                             onChange={handleChange}
-                            className="w-full border text-gray-900 rounded-md px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                         />
-                        <input
+                        <Input
                             name="phoneNumber"
                             placeholder="Phone number"
                             onChange={handleChange}
-                            className="w-full border text-gray-900 rounded-md px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                         />
                     </div>
 
-                    {/* Password */}
                     <div className="flex gap-4">
                         <div className="relative w-full">
-                            <input
+                            <Input
                                 name="password"
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Password"
                                 onChange={handleChange}
-                                className="w-full border text-gray-900 rounded-md px-3 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                                className="pr-12"
                             />
                             <button
                                 type="button"
@@ -163,14 +156,13 @@ export default function RegisterPage() {
                             </button>
                         </div>
 
-                        {/* Confirm Password */}
                         <div className="relative w-full">
-                            <input
+                            <Input
                                 name="confirmPassword"
                                 type={showConfirmPassword ? "text" : "password"}
                                 placeholder="Confirm password"
                                 onChange={handleChange}
-                                className="w-full border text-gray-900 rounded-md px-3 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                                className="pr-12"
                             />
                             <button
                                 type="button"
@@ -186,7 +178,6 @@ export default function RegisterPage() {
                         </div>
                     </div>
 
-                    {/* Progressive password rule */}
                     {showRule && rule && !isPasswordValid && (
                         <div
                             className={`rounded-md border px-4 py-3 text-sm transition-all ${rule.valid
@@ -198,13 +189,9 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    <button
-                        onClick={register}
-                        disabled={loading || !isPasswordValid}
-                        className="w-full bg-gray-900 hover:bg-black text-white rounded-md py-3 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    <Button onClick={submit} disabled={loading || !isPasswordValid}>
                         {loading ? "Creating account..." : "Create account"}
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="flex items-center gap-3 my-5">
@@ -213,26 +200,18 @@ export default function RegisterPage() {
                     <div className="flex-1 h-px bg-gray-200" />
                 </div>
 
-                {/* Social login */}
-                <div className="flex gap-3">
-                    <button
-                        onClick={loginWithGoogle}
-                        className="w-full flex items-center justify-center gap-3 border rounded-md py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-                    >
+                <div className="flex flex-col sm:flex-row  justify-between gap-5">
+                    <Button variant="secondary" onClick={loginWithGoogle}>
                         <img src="/google.svg" className="w-5 h-5" />
                         Continue with Google
-                    </button>
+                    </Button>
 
-                    <button
-                        onClick={loginWithFacebook}
-                        className="w-full flex items-center justify-center gap-3 border rounded-md py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-                    >
+                    <Button variant="secondary" onClick={loginWithFacebook}>
                         <img src="/facebook.svg" className="w-5 h-5" />
                         Continue with Facebook
-                    </button>
+                    </Button>
                 </div>
 
-                {/* Login link */}
                 <p className="text-center text-sm text-gray-500 mt-6">
                     Already have an account?{" "}
                     <Link href="/login" className="text-gray-900 font-medium hover:underline">

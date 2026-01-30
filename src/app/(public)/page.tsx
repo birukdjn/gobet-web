@@ -1,19 +1,11 @@
 "use client";
 
-import Navbar from "@/components/Navbar";
-
-
-interface User {
-  email: string;
-  fullName: string;
-  role: string;
-}
+import Navbar from "@/components/layout/Navbar";
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-gray-50">
-
-
+      <Navbar />
 
       {/* Hero */}
       <section className="max-w-7xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-12 items-center">
@@ -44,7 +36,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Illustration / placeholder */}
         <div className="hidden md:flex justify-center">
           <div className="w-80 h-80 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-400 text-sm">
             Bus booking UI preview
@@ -93,5 +84,3 @@ function Feature({ title, desc }: { title: string; desc: string }) {
     </div>
   );
 }
-
-

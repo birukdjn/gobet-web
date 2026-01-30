@@ -2,36 +2,23 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { useRouter } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
+import { useAuth } from "@/hooks/useAuth";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Modal from "@/components/ui/Modal";
 
 export default function PassengerDashboard() {
-  const router = useRouter();
+  const { user, logout } = useAuth();
   const [destination, setDestination] = useState("");
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [trips, setTrips] = useState<any[]>([]);
   const [error, setError] = useState("");
-  const [userRole, setUserRole] = useState<string | null>(null);
 
   const [showDriverModal, setShowDriverModal] = useState(false);
   const [licenseNumber, setLicenseNumber] = useState("");
   const [requestingDriver, setRequestingDriver] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return router.push("/login");
-
-    try {
-      type JwtPayload = { role: string };
-      const payload: JwtPayload = jwtDecode(token);
-      setUserRole(payload.role); //
-    } catch (err) {
-      localStorage.removeItem("token");
-      router.push("/login");
-    }
-  }, [router]);
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -88,90 +75,72 @@ export default function PassengerDashboard() {
     }
   };
 
-
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-lg font-semibold text-gray-900">
             Passenger Dashboard
           </h1>
-          {/* Request Driver Button */}
-          <div className=" flex gap-4">
-            {userRole === "Passenger" && (
-              <button
-                onClick={() => setShowDriverModal(true)}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition"
-              >
-                Request to Become a Driver
-              </button>
+
+          <div className="flex gap-4 items-center">
+            {user?.role === "Passenger" && (
+              <Button onClick={() => setShowDriverModal(true)}>
+                Become a Driver
+              </Button>
             )}
-            <button
-              onClick={() => {
-                localStorage.removeItem("token");
-                router.push("/login");
-              }}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
+            <Button variant="ghost" onClick={logout}>
               Logout
-            </button>
+            </Button>
           </div>
         </div>
       </header>
 
       <section className="max-w-7xl mx-auto px-6 py-10">
+        {/* Driver Request Modal */}
+        <Modal
+          open={showDriverModal}
+          onClose={() => setShowDriverModal(false)}
+          title="Request Driver Access"
+        >
+          <p className="text-sm text-gray-500 mb-3">
+            Enter your driver license number. Admin approval is required.
+          </p>
 
-        {showDriverModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-              <h2 className="text-lg font-semibold mb-4">Request to be a Driver</h2>
-              <input
-                placeholder="Driver License Number"
-                value={licenseNumber}
-                onChange={(e) => setLicenseNumber(e.target.value)}
-                className="w-full border rounded-md px-3 py-2 mb-4 focus:ring-2 focus:ring-gray-900 focus:outline-none"
-              />
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowDriverModal(false)}
-                  className="px-4 py-2 rounded-md border hover:bg-gray-100 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={requestDriver}
-                  disabled={requestingDriver || !licenseNumber}
-                  className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
-                >
-                  {requestingDriver ? "Requesting..." : "Request"}
-                </button>
-              </div>
-            </div>
+          <Input
+            placeholder="Driver License Number"
+            value={licenseNumber}
+            onChange={(e) => setLicenseNumber(e.target.value)}
+          />
+
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="secondary" onClick={() => setShowDriverModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={requestDriver}
+              disabled={requestingDriver || !licenseNumber}
+            >
+              {requestingDriver ? "Submitting..." : "Submit"}
+            </Button>
           </div>
-        )}
+        </Modal>
 
-
-        {/* Search Buses */}
+        {/* Search */}
         <div className="bg-white border rounded-lg p-6 shadow-sm mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Find buses
           </h2>
 
           <div className="flex flex-col md:flex-row gap-4">
-            <input
+            <Input
               placeholder="Destination (e.g. Adama)"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
-              className="flex-1 border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
             />
-            <button
-              onClick={searchBuses}
-              disabled={loading}
-              className="bg-gray-900 text-white px-6 py-2.5 rounded-md text-sm font-medium hover:bg-black transition disabled:opacity-60"
-            >
+            <Button onClick={searchBuses} disabled={loading || !destination}>
               {loading ? "Searching..." : "Search"}
-            </button>
+            </Button>
           </div>
 
           {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
@@ -179,7 +148,7 @@ export default function PassengerDashboard() {
 
         {/* Trips */}
         <div className="space-y-4">
-          {trips.length === 0 && (
+          {!loading && trips.length === 0 && (
             <p className="text-sm text-gray-500">
               No trips found. Try another destination.
             </p>
@@ -202,12 +171,7 @@ export default function PassengerDashboard() {
                 </p>
               </div>
 
-              <button
-                onClick={() => bookPickup(trip.id)}
-                className="bg-gray-900 text-white px-4 py-2 rounded-md text-xs font-medium hover:bg-black transition"
-              >
-                Book pickup
-              </button>
+              <Button onClick={() => bookPickup(trip.id)}>Book Pickup</Button>
             </div>
           ))}
         </div>
