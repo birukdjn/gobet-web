@@ -11,6 +11,7 @@ import {
 } from "@/auth/auth.service";
 
 type User = {
+    fullname?: string;
     id?: string;
     email?: string;
     role: string;

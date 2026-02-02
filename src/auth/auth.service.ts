@@ -1,6 +1,7 @@
 import { jwtDecode } from "jwt-decode";
 
 export type JwtPayload = {
+    username?: string;
     sub?: string;
     email?: string;
     exp?: number;

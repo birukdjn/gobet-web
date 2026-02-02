@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
+import Navbar from "@/components/layout/Navbar";
 
 export default function PassengerDashboard() {
   const { user, logout } = useAuth();
@@ -77,24 +78,10 @@ export default function PassengerDashboard() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-lg font-semibold text-gray-900">
-            Passenger Dashboard
-          </h1>
+      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <h1 className="text-3xl text-gray-800 font-bold mb-6">Passenger Dashboard</h1>
+      </div>
 
-          <div className="flex gap-4 items-center">
-            {user?.role === "Passenger" && (
-              <Button onClick={() => setShowDriverModal(true)}>
-                Become a Driver
-              </Button>
-            )}
-            <Button variant="ghost" onClick={logout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
 
       <section className="max-w-7xl mx-auto px-6 py-10">
         {/* Driver Request Modal */}

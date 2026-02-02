@@ -1,9 +1,9 @@
 "use client";
 
-import StatsCard from "./StatsCard";
-import UsersTable from "./UsersTable";
-import TripsTable from "./TripsTable";
-import Navbar from "@/components/layout/Navbar";
+import StatsCard from "./components/StatsCard";
+import UsersTable from "./components/UsersTable";
+import TripsTable from "./components/TripsTable";
+import DriverRequestsTable from "./components/DriverRequestsTable";
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 
@@ -17,7 +17,6 @@ export default function AdminDashboardPage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar />
             <main className="max-w-7xl mx-auto px-6 py-8">
                 <h1 className="text-3xl text-gray-800 font-bold mb-6">Admin Dashboard</h1>
 
@@ -36,18 +35,24 @@ export default function AdminDashboardPage() {
                     <StatsCard title="Total Bookings" value={stats?.bookingsCount || 0} />
                     <StatsCard title="Pending Requests" value={stats?.pendingBookingsCount || 0} />
                 </div>
-
-                {/* Users Management */}
                 <section className="mb-10">
-                    <h2 className="text-xl text-gray-800 font-semibold mb-4">Users</h2>
+                    <div className="flex items-center gap-2 mb-4">
+                        <h2 className="text-xl text-gray-800 font-semibold">Driver Verification Requests</h2>
+                        <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs font-bold">Pending Action</span>
+                    </div>
+                    <DriverRequestsTable />
+                </section>
+
+                <section className="mb-10">
+                    <h2 className="text-xl text-gray-800 font-semibold mb-4">User Management</h2>
                     <UsersTable />
                 </section>
 
-                {/* Trips Overview */}
                 <section>
-                    <h2 className="text-xl text-gray-800 font-semibold mb-4">Trips</h2>
+                    <h2 className="text-xl text-gray-800 font-semibold mb-4">System Trips</h2>
                     <TripsTable />
                 </section>
+
             </main>
         </div>
     );

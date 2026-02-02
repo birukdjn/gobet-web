@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
+import Navbar from "@/components/layout/Navbar";
 
 type Trip = {
   id: string;
@@ -102,23 +103,9 @@ export default function DriverDashboard() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-lg font-semibold text-gray-900">
-            Driver Dashboard
-          </h1>
-          <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              router.push("/login");
-            }}
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <h1 className="text-3xl text-gray-800 font-bold mb-6">Driver Dashboard</h1>
+      </div>
 
       <section className="max-w-5xl mx-auto px-6 py-10 space-y-10">
         {/* Active Trip */}
