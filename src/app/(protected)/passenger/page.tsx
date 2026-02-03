@@ -1,168 +1,111 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import api from "@/lib/api";
-import { useAuth } from "@/hooks/useAuth";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
-import Modal from "@/components/ui/Modal";
-import Navbar from "@/components/layout/Navbar";
+import dynamic from 'next/dynamic';
+import { useState, useEffect } from "react";
+import {
+  Search, MapPin, Clock, Wallet,
+  History, Bell, Settings,
+  Navigation, Heart, LifeBuoy, LogOut
+} from "lucide-react";
+
+// Components
+import FindTrips from "./components/FindTrips";
+import MyBookings from "./components/MyBookings";
+import PassengerWallet from "./components/PassengerWallet";
+import SavedRoutes from "./components/SavedRoutes";
+import SupportCenter from "./components/SupportCenter";
+import NotificationCenter from "@/components/NotificationCenter";
+import SettingsPage from '@/components/SettingsPage';
+import { useAuth } from '@/hooks/useAuth';
+
+// Safe Dynamic Import for Leaflet (Consistent with Admin)
+const LiveTrackingMap = dynamic(
+  () => import('../admin/components/LiveTrackingMap'),
+  {
+    ssr: false,
+    loading: () => <div className="h-[500px] w-full bg-gray-100 animate-pulse rounded-3xl" />
+  }
+);
 
 export default function PassengerDashboard() {
-  const { user, logout } = useAuth();
-  const [destination, setDestination] = useState("");
-  const [lat, setLat] = useState<number | null>(null);
-  const [lon, setLon] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [trips, setTrips] = useState<any[]>([]);
-  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("find-trips");
+  const { user } = useAuth();
 
-  const [showDriverModal, setShowDriverModal] = useState(false);
-  const [licenseNumber, setLicenseNumber] = useState("");
-  const [requestingDriver, setRequestingDriver] = useState(false);
-
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLon(pos.coords.longitude);
-      },
-      () => {
-        setLat(0);
-        setLon(0);
-      }
-    );
-  }, []);
-
-  const searchBuses = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const res = await api.get("/passenger/find-buses", {
-        params: { destination, lat, lon },
-      });
-      setTrips(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to fetch trips");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const bookPickup = async (tripId: string) => {
-    try {
-      await api.post("/passenger/book-pickup", {
-        tripId,
-        latitude: lat,
-        longitude: lon,
-      });
-      alert("Pickup booked successfully!");
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Booking failed");
-    }
-  };
-
-  const requestDriver = async () => {
-    try {
-      setRequestingDriver(true);
-      await api.post("/Driver/request-driver", { licenseNumber });
-      alert("Your request has been submitted. Wait for admin approval.");
-      setShowDriverModal(false);
-      setLicenseNumber("");
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Request failed");
-    } finally {
-      setRequestingDriver(false);
-    }
-  };
+  const menuItems = [
+    { id: "find-trips", label: "Book a Seat", icon: <Search size={20} /> },
+    { id: "live-map", label: "Explore Nearby", icon: <Navigation size={20} /> },
+    { id: "my-bookings", label: "My Trips", icon: <History size={20} /> },
+    { id: "wallet", label: "Wallet & Payments", icon: <Wallet size={20} /> },
+    { id: "saved", label: "Favorite Routes", icon: <Heart size={20} /> },
+    { id: "notifications", label: "Alerts", icon: <Bell size={20} /> },
+    { id: "support", label: "Support & Safety", icon: <LifeBuoy size={20} /> },
+    { id: "settings", label: "System Config", icon: <Settings size={20} /> },
+  ];
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        <h1 className="text-3xl text-gray-800 font-bold mb-6">Passenger Dashboard</h1>
-      </div>
+    <div className="min-h-screen bg-[#f8f9fa] flex">
+      {/* 1. CONSISTENT SIDEBAR */}
+      <aside className="w-72 bg-white border-r border-gray-200 hidden md:flex flex-col sticky top-0 h-screen">
+        <div className="p-8">
 
-
-      <section className="max-w-7xl mx-auto px-6 py-10">
-        {/* Driver Request Modal */}
-        <Modal
-          open={showDriverModal}
-          onClose={() => setShowDriverModal(false)}
-          title="Request Driver Access"
-        >
-          <p className="text-sm text-gray-500 mb-3">
-            Enter your driver license number. Admin approval is required.
-          </p>
-
-          <Input
-            placeholder="Driver License Number"
-            value={licenseNumber}
-            onChange={(e) => setLicenseNumber(e.target.value)}
-          />
-
-          <div className="flex justify-end gap-3 mt-4">
-            <Button variant="secondary" onClick={() => setShowDriverModal(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={requestDriver}
-              disabled={requestingDriver || !licenseNumber}
-            >
-              {requestingDriver ? "Submitting..." : "Submit"}
-            </Button>
-          </div>
-        </Modal>
-
-        {/* Search */}
-        <div className="bg-white border rounded-lg p-6 shadow-sm mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Find buses
-          </h2>
-
-          <div className="flex flex-col md:flex-row gap-4">
-            <Input
-              placeholder="Destination (e.g. Adama)"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-            />
-            <Button onClick={searchBuses} disabled={loading || !destination}>
-              {loading ? "Searching..." : "Search"}
-            </Button>
-          </div>
-
-          {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
         </div>
 
-        {/* Trips */}
-        <div className="space-y-4">
-          {!loading && trips.length === 0 && (
-            <p className="text-sm text-gray-500">
-              No trips found. Try another destination.
-            </p>
-          )}
-
-          {trips.map((trip) => (
-            <div
-              key={trip.id}
-              className="bg-white border rounded-lg p-5 shadow-sm flex justify-between items-center"
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-10">
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === item.id
+                ? "bg-blue-600 text-white shadow-lg translate-x-1"
+                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                }`}
             >
-              <div>
-                <p className="text-sm font-medium text-gray-900">
-                  {trip.destination}
-                </p>
-                <p className="text-xs text-gray-500">
-                  Departs: {new Date(trip.departureTime).toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-500">
-                  Seats available: {trip.availableSeats}
-                </p>
-              </div>
-
-              <Button onClick={() => bookPickup(trip.id)}>Book Pickup</Button>
-            </div>
+              {item.icon}
+              {item.label}
+            </button>
           ))}
+        </nav>
+
+        <div className="p-6 border-t bg-gray-50/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-gray-200 border-2 border-white overflow-hidden">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sara" alt="User" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">{user?.email}</p>
+              <p className="text-[10px] text-blue-600 font-bold uppercase">{user?.role}
+              </p>
+            </div>
+          </div>
         </div>
-      </section>
-    </main>
+      </aside>
+
+      {/* 2. MAIN CONTENT AREA */}
+      <main className="flex-1 p-8 overflow-y-auto">
+        <header className="flex justify-between items-end mb-10">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 capitalize">
+              {activeTab.replace("-", " ")}
+            </h2>
+            <p className="text-gray-500 mt-1">Reliable transport across Addis Ababa.</p>
+          </div>
+          <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-100 text-right">
+            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Digital Wallet</p>
+            <p className="text-xl font-black text-gray-900">450.00 <span className="text-xs font-normal">ETB</span></p>
+          </div>
+        </header>
+
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {activeTab === "find-trips" && <FindTrips />}
+          {activeTab === "live-map" && <LiveTrackingMap />}
+          {activeTab === "my-bookings" && <MyBookings />}
+          {activeTab === "wallet" && <PassengerWallet />}
+          {activeTab === "saved" && <SavedRoutes />}
+          {activeTab === "support" && <SupportCenter />}
+          {activeTab === "notifications" && <NotificationCenter />}
+          {activeTab === "settings" && <SettingsPage />}
+        </div>
+      </main>
+    </div>
   );
 }
