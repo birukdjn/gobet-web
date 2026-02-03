@@ -1,9 +1,16 @@
 import api from "@/lib/api";
 
 export const driverService = {
-    requestDriver: () => api.post("/Driver/request-driver"),
+    // Auth & Profile
     myRequestStatus: () => api.get("/Driver/my-request-status"),
-     getAvailableRoutes: () => api.get("/admin/routes"), // Drivers need to see what admins created
-    createTrip: (data: any) => api.post("/Trips", data),
-    getMyTrips: () => api.get("/Trips/my-trips"),
+
+    // Trip Lifecycle (OAS 3.0 Endpoints)
+    getAvailableRoutes: () => api.get("/admin/routes"),
+    createTrip: (data: { destination: string; totalSeats: number; routeId: string; busPlateNumber: string }) =>
+        api.post("/Trips", data),
+    startTrip: (id: string) => api.post(`/Trips/${id}/start`),
+    completeTrip: (id: string) => api.post(`/Trips/${id}/complete`),
+    updateLocation: (id: string, lat: number, lng: number) =>
+        api.put(`/Trips/${id}/location`, { latitude: lat, longitude: lng }),
+    getTripDetails: (id: string) => api.get(`/Trips/${id}`),
 };

@@ -16,7 +16,7 @@ import FleetTable from "./components/FleetTable";
 import AnalyticsView from "./components/AnalyticsView";
 import PromoManager from "./components/PromoManager";
 import ReportsCenter from "./components/ReportsCenter";
-import SettingsPage from "@/components/SettingsPage";
+import SettingsPage from "./components/SettingsPage";
 import NotificationCenter from "@/components/NotificationCenter";
 import DriverRequestsTableOverview from './components/DriverRequestTableOverview';
 

@@ -1,220 +1,151 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import api from "@/lib/api";
-import { useRouter } from "next/navigation";
-import Navbar from "@/components/layout/Navbar";
+import { useState, useEffect, Profiler } from "react";
+import {
+  Navigation, Users, Wallet, Power, Map, ScanLine,
+  History, LifeBuoy, Settings, ChevronRight, X, Check
+} from "lucide-react";
 
-type Trip = {
-  id: string;
-  destination: string;
-  availableSeats: number;
-  totalSeats: number;
-  status: string;
-  departureTime?: string;
-};
+// Component Imports
+import ActiveTrip from "./components/ActiveTrip";
+import TicketScanner from "./components/TicketScanner";
+import TripHistory from "./components/TripHistory";
+import { driverService } from "@/services/driver.service";
+import LiveTrackingMap from "../admin/components/LiveTrackingMap";
+import SupportCenter from "../passenger/components/SupportCenter";
+import SettingsPage from "@/components/SettingsPage";
 
 export default function DriverDashboard() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
-  const [error, setError] = useState("");
+  const [isOnline, setIsOnline] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<any>(null);
+  const [activeTripId, setActiveTripId] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    destination: "",
-    totalSeats: 40,
-    routeId: "",
-    busPlateNumber: "",
-  });
+  // Mock Routes (Replace with driverService.getAvailableRoutes() in useEffect)
+  const availableRoutes = [
+    { id: "3fa85f64-5717-4562-b3fc-2c963f66afa6", name: "Line 10", from: "Mexico", to: "Bole", price: 15 },
+    { id: "4fb96g75-6828-5673-c4gd-d4fd5f77bgb7", name: "Line 04", from: "Megenagna", to: "4-Kilo", price: 12 },
+  ];
 
-  // 🔐 Protect route
+  // GPS Tracking Loop
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) router.push("/login");
-  }, [router]);
-
-  // 🔍 Load active trip (if any)
-  useEffect(() => {
-    loadActiveTrip();
-  }, []);
-
-  const loadActiveTrip = async () => {
-    try {
-      const res = await api.get("/driver/my-active-trip");
-      setActiveTrip(res.data);
-    } catch {
-      setActiveTrip(null);
+    let interval: NodeJS.Timeout;
+    if (isOnline && activeTripId) {
+      interval = setInterval(() => {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          driverService.updateLocation(activeTripId, pos.coords.latitude, pos.coords.longitude);
+        }, (err) => console.error("GPS Error", err), { enableHighAccuracy: true });
+      }, 10000);
     }
-  };
-
-  // 📍 Live location update every 10 seconds
-  useEffect(() => {
-    if (!activeTrip) return;
-
-    const interval = setInterval(() => {
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        await api.put(`/Trips/${activeTrip.id}/location`, {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        });
-      });
-    }, 10000);
-
     return () => clearInterval(interval);
-  }, [activeTrip]);
+  }, [isOnline, activeTripId]);
 
-  const createTrip = async () => {
+  // Start Shift Logic
+  const handleConfirmStart = async () => {
+    if (!selectedRoute) return;
     try {
-      setCreating(true);
-      setError("");
-      const res = await api.post("/Trips", form);
-      setActiveTrip(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to create trip");
-    } finally {
-      setCreating(false);
+      const res = await driverService.createTrip({
+        destination: selectedRoute.to,
+        totalSeats: 16,
+        routeId: selectedRoute.id,
+        busPlateNumber: "AA 3 B9876"
+      });
+      const tripId = res.data.id;
+      await driverService.startTrip(tripId);
+
+      setActiveTripId(tripId);
+      setIsOnline(true);
+      setIsModalOpen(false);
+    } catch (err) {
+      alert("Shift start failed. Ensure you are an approved driver.");
     }
   };
 
-  const startTrip = async () => {
-    try {
-      setLoading(true);
-      await api.post(`/Trips/${activeTrip!.id}/start`);
-      loadActiveTrip();
-    } catch {
-      alert("Failed to start trip");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const completeTrip = async () => {
-    try {
-      setLoading(true);
-      await api.post(`/Trips/${activeTrip!.id}/complete`);
-      setActiveTrip(null);
-    } catch {
-      alert("Failed to complete trip");
-    } finally {
-      setLoading(false);
+  // End Shift Logic
+  const handleEndShift = async () => {
+    if (activeTripId) {
+      await driverService.completeTrip(activeTripId);
+      setIsOnline(false);
+      setActiveTripId(null);
+      setSelectedRoute(null);
     }
   };
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        <h1 className="text-3xl text-gray-800 font-bold mb-6">Driver Dashboard</h1>
-      </div>
+    <div className="min-h-screen bg-[#0f172a] text-white flex flex-col md:flex-row">
+      {/* SIDEBAR */}
+      <aside className="w-72 bg-[#1e293b] border-r border-slate-800 hidden md:flex flex-col h-screen sticky top-0">
+        <div className="p-8 font-black text-2xl italic">GoBet <span className="text-green-500 not-italic">Driver</span></div>
+        <nav className="flex-1 px-4 space-y-1">
+          {[{ id: "dashboard", label: "Active Route", icon: <Navigation size={20} /> },
+          { id: "scanner", label: "Scan Ticket", icon: <ScanLine size={20} /> },
+          { id: "earnings", label: "Earnings", icon: <Wallet size={20} /> },
+          { id: "history", label: "History", icon: <History size={20} /> },
+          { id: "support", label: "Support", icon: <LifeBuoy size={20} /> },
+          { id: "settings", label: "Settings", icon: <Settings size={20} /> },
+          { id: "map", label: "Live Map", icon: <Map size={20} /> },
+          ].map((item) => (
+            <button key={item.id} onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === item.id ? "bg-green-500 text-black shadow-lg" : "text-slate-400 hover:bg-slate-800"}`}>
+              {item.icon} {item.label}
+            </button>
+          ))}
+        </nav>
+        <div className="p-6 bg-slate-900/50 m-4 rounded-[28px] border border-slate-800">
+          <button onClick={() => isOnline ? handleEndShift() : setIsModalOpen(true)}
+            className={`w-full py-4 rounded-xl font-black flex items-center justify-center gap-2 transition-all ${isOnline ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500 text-black'}`}>
+            <Power size={18} /> {isOnline ? "End Shift" : "Start Shift"}
+          </button>
+        </div>
+      </aside>
 
-      <section className="max-w-5xl mx-auto px-6 py-10 space-y-10">
-        {/* Active Trip */}
-        {activeTrip && (
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Active Trip
-            </h2>
-
-            <div className="flex flex-col md:flex-row justify-between gap-4">
-              <div className="space-y-1">
-                <p className="text-sm text-gray-700">
-                  Destination:{" "}
-                  <span className="font-medium">{activeTrip.destination}</span>
-                </p>
-                <p className="text-sm text-gray-700">
-                  Seats: {activeTrip.availableSeats}/{activeTrip.totalSeats}
-                </p>
-                <p className="text-sm text-gray-700">
-                  Status:{" "}
-                  <span className="font-medium">{activeTrip.status}</span>
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                {activeTrip.status === "Scheduled" && (
-                  <button
-                    onClick={startTrip}
-                    disabled={loading}
-                    className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-black transition disabled:opacity-60"
-                  >
-                    Start Trip
-                  </button>
-                )}
-
-                {activeTrip.status === "InProgress" && (
-                  <button
-                    onClick={completeTrip}
-                    disabled={loading}
-                    className="bg-gray-200 text-gray-900 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-300 transition disabled:opacity-60"
-                  >
-                    Complete Trip
-                  </button>
-                )}
-              </div>
-            </div>
+      {/* MAIN CONTENT */}
+      <main className="flex-1 p-6 md:p-10 pb-32">
+        <header className="flex justify-between items-end mb-10">
+          <div>
+            <h2 className="text-3xl font-black italic tracking-tighter uppercase">{activeTab}</h2>
+            <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">Bus AA 3 B9876</p>
           </div>
-        )}
+        </header>
 
-        {/* Create Trip */}
-        {!activeTrip && (
-          <div className="bg-white border rounded-lg p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Create New Trip
-            </h2>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {activeTab === "dashboard" && <ActiveTrip isOnline={isOnline} />}
+          {activeTab === "scanner" && <TicketScanner />}
+          {activeTab === "history" && <TripHistory />}
+          {activeTab === "map" && <LiveTrackingMap />}
+          {activeTab === "support" && <SupportCenter />}
+          {activeTab === "settings" && <SettingsPage />}
+        </div>
+      </main>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                placeholder="Destination"
-                value={form.destination}
-                onChange={(e) =>
-                  setForm({ ...form, destination: e.target.value })
-                }
-                className="border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
-              />
-
-              <input
-                placeholder="Bus Plate Number"
-                value={form.busPlateNumber}
-                onChange={(e) =>
-                  setForm({ ...form, busPlateNumber: e.target.value })
-                }
-                className="border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
-              />
-
-              <input
-                type="number"
-                placeholder="Total Seats"
-                value={form.totalSeats}
-                onChange={(e) =>
-                  setForm({ ...form, totalSeats: Number(e.target.value) })
-                }
-                className="border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
-              />
-
-              <input
-                placeholder="Route ID"
-                value={form.routeId}
-                onChange={(e) =>
-                  setForm({ ...form, routeId: e.target.value })
-                }
-                className="border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
-              />
+      {/* ROUTE MODAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#1e293b] w-full max-w-lg rounded-[40px] border border-slate-700 p-8 animate-in zoom-in-95">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-black italic">Select Route</h3>
+              <X className="cursor-pointer text-slate-500" onClick={() => setIsModalOpen(false)} />
             </div>
-
-            {error && (
-              <p className="text-red-500 text-sm mt-3">{error}</p>
-            )}
-
-            <button
-              onClick={createTrip}
-              disabled={creating}
-              className="mt-5 bg-gray-900 text-white px-6 py-2.5 rounded-md text-sm font-medium hover:bg-black transition disabled:opacity-60"
-            >
-              {creating ? "Creating..." : "Create Trip"}
+            <div className="space-y-3">
+              {availableRoutes.map((route) => (
+                <button key={route.id} onClick={() => setSelectedRoute(route)}
+                  className={`w-full p-6 rounded-3xl border-2 transition-all flex justify-between items-center ${selectedRoute?.id === route.id ? "border-green-500 bg-green-500/5" : "border-slate-800 bg-slate-900/50"}`}>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black text-green-500 uppercase">{route.name}</p>
+                    <p className="font-bold">{route.from} → {route.to}</p>
+                  </div>
+                  {selectedRoute?.id === route.id && <Check className="text-green-500" />}
+                </button>
+              ))}
+            </div>
+            <button disabled={!selectedRoute} onClick={handleConfirmStart}
+              className="w-full mt-8 py-5 bg-green-500 disabled:bg-slate-800 text-black font-black rounded-2xl">
+              Confirm & Start Drive
             </button>
           </div>
-        )}
-      </section>
-    </main>
+        </div>
+      )}
+    </div>
   );
 }
