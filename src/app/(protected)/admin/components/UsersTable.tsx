@@ -3,7 +3,8 @@
 import { useEffect, useState, useMemo } from "react";
 import api from "@/lib/api";
 import ConfirmationModal from "./ConfirmationModal";
-import { ChevronUp, ChevronDown, ArrowUpDown, Clock } from "lucide-react";
+import { ChevronUp, ChevronDown, ArrowUpDown, Clock, Search } from "lucide-react";
+import Input from "@/components/ui/Input";
 
 type User = {
     id: string;
@@ -26,6 +27,10 @@ export default function UsersTable() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [userToToggle, setUserToToggle] = useState<User | null>(null);
+
+    const [searchTerm, setSearchTerm] = useState("");
+
+
 
     useEffect(() => {
         api.get("/admin/users")
@@ -140,10 +145,30 @@ export default function UsersTable() {
         }
     };
 
+    const filteredUsers = useMemo(() => {
+        return sortedUsers.filter(user =>
+            user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [sortedUsers, searchTerm]);
+
     if (loading) return <p className="p-10 text-center text-gray-500">Loading users...</p>;
 
     return (
         <div className="overflow-x-auto p-4">
+            <div className="mb-6 flex gap-4">
+                <div className="relative flex-1">
+                    <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
+                        <Search size={18} />
+                    </span>
+                    <Input
+                        className="pl-10"
+                        placeholder="Search users by name or email..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
             <table className="w-full border-collapse bg-white shadow rounded-lg overflow-hidden">
                 <thead className="bg-gray-100">
                     <tr className="text-gray-600 font-medium border-b select-none">

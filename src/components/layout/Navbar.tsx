@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Button from "../ui/Button";
 import { useDriverStore } from "@/store/useDriverStore";
+import { LogOut } from "lucide-react";
 
 export default function Navbar() {
   const router = useRouter();
@@ -38,15 +39,14 @@ export default function Navbar() {
                 </Button>
               )}
 
-              <button
-                onClick={() => {
-                  logout();
-                  router.push("/login");
-                }}
-                className="text-red-500 hover:text-red-700 font-medium"
-              >
-                Logout
+              <button onClick={() => {
+                logout();
+                router.push("/login");
+              }}
+                className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 w-full rounded-xl transition-colors text-sm font-bold">
+                <LogOut size={20} /> Logout
               </button>
+
             </>
           ) : (
             <>
