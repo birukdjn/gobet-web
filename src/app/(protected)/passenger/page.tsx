@@ -46,9 +46,20 @@ export default function PassengerDashboard() {
     <div className="min-h-screen bg-[#f8f9fa] flex">
       {/* 1. CONSISTENT SIDEBAR */}
       <aside className="w-72 bg-white border-r border-gray-200 hidden md:flex flex-col sticky top-0 h-screen">
-        <div className="p-8">
 
+        <div className="p-6 border-t bg-gray-50/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-gray-200 border-2 border-white overflow-hidden">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sara" alt="User" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">{user?.email}</p>
+              <p className="text-[10px] text-blue-600 font-bold uppercase">{user?.role}
+              </p>
+            </div>
+          </div>
         </div>
+
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-10">
           {menuItems.map((item) => (
@@ -66,18 +77,7 @@ export default function PassengerDashboard() {
           ))}
         </nav>
 
-        <div className="p-6 border-t bg-gray-50/50">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-gray-200 border-2 border-white overflow-hidden">
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sara" alt="User" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-900">{user?.email}</p>
-              <p className="text-[10px] text-blue-600 font-bold uppercase">{user?.role}
-              </p>
-            </div>
-          </div>
-        </div>
+
       </aside>
 
       {/* 2. MAIN CONTENT AREA */}
