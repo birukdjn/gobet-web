@@ -15,15 +15,19 @@ export default function DriverRequestModal() {
     const handleSubmit = async () => {
         try {
             setLoading(true);
-            // Matches Swagger POST /api/Driver/request-driver
+
             await api.post("/Driver/request-driver", {
-                licenseNumber: licenseNumber.trim()
+                licenseNumber: licenseNumber.trim(),
             });
+
             alert("Request submitted! We will notify you via email.");
             closeModal();
-            window.location.reload(); // Refresh to show the pending pulse
+            window.location.reload();
         } catch (err: any) {
-            alert(err.response?.data?.message || "You already have a pending request.");
+            alert(
+                err.response?.data?.message ||
+                "You already have a pending request."
+            );
         } finally {
             setLoading(false);
         }
@@ -32,14 +36,21 @@ export default function DriverRequestModal() {
     return (
         <Modal open={isModalOpen} onClose={closeModal} title="Become a Driver">
             <div className="space-y-4">
-                <p className="text-sm text-gray-500">Enter your license details for verification.</p>
+                <p className="text-sm text-gray-500">
+                    Enter your license details for verification.
+                </p>
+
                 <Input
                     placeholder="License Number"
                     value={licenseNumber}
                     onChange={(e) => setLicenseNumber(e.target.value)}
                 />
+
                 <div className="flex justify-end gap-2">
-                    <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+                    <Button variant="secondary" onClick={closeModal}>
+                        Cancel
+                    </Button>
+
                     <Button onClick={handleSubmit} disabled={loading || !licenseNumber}>
                         {loading ? "Submitting..." : "Submit Request"}
                     </Button>
