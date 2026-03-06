@@ -8,6 +8,7 @@ export default function ResetPasswordPage() {
   const router = useRouter();
   const params = useSearchParams();
 
+  // Initialize form with query params
   const [form, setForm] = useState({
     email: params.get("email") || "",
     token: params.get("token") || "",
@@ -23,8 +24,9 @@ export default function ResetPasswordPage() {
     setError("");
     setSuccess("");
 
-    if (form.newPassword !== form.confirmPassword)
+    if (form.newPassword !== form.confirmPassword) {
       return setError("Passwords do not match");
+    }
 
     try {
       setLoading(true);
@@ -79,7 +81,9 @@ export default function ResetPasswordPage() {
             type="password"
             placeholder="New password"
             value={form.newPassword}
-            onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, newPassword: e.target.value })
+            }
             className="w-full border rounded-md px-3 py-3 text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
           />
 
