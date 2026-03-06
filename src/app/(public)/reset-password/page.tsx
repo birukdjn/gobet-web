@@ -1,14 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordPageWrapper() {
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure this runs only on the client
+  useEffect(() => setIsClient(true), []);
+
+  if (!isClient) return null; // Avoid SSR rendering
+
+  return <ResetPasswordPage />;
+}
+
+function ResetPasswordPage() {
   const router = useRouter();
   const params = useSearchParams();
 
-  // Initialize form with query params
   const [form, setForm] = useState({
     email: params.get("email") || "",
     token: params.get("token") || "",
