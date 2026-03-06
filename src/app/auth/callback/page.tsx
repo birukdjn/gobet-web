@@ -1,10 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getPrimaryRole, saveToken } from "@/auth/auth.service";
 
-export default function AuthCallbackPage() {
+export default function AuthCallbackPageWrapper() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null; // Prevent SSR from running client-only hooks
+
+  return <AuthCallbackPage />;
+}
+
+function AuthCallbackPage() {
   const router = useRouter();
   const params = useSearchParams();
 
