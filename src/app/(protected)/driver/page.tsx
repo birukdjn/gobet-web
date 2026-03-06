@@ -1,9 +1,17 @@
 "use client";
 
-import { useState, useEffect, Profiler } from "react";
+import { useState, useEffect } from "react";
 import {
-  Navigation, Users, Wallet, Power, Map, ScanLine,
-  History, LifeBuoy, Settings, ChevronRight, X, Check
+  Navigation,
+  Wallet,
+  Power,
+  Map,
+  ScanLine,
+  History,
+  LifeBuoy,
+  Settings,
+  X,
+  Check,
 } from "lucide-react";
 
 // Component Imports
@@ -22,80 +30,128 @@ export default function DriverDashboard() {
   const [selectedRoute, setSelectedRoute] = useState<any>(null);
   const [activeTripId, setActiveTripId] = useState<string | null>(null);
 
-  // Mock Routes (Replace with driverService.getAvailableRoutes() in useEffect)
   const availableRoutes = [
-    { id: "3fa85f64-5717-4562-b3fc-2c963f66afa6", name: "Line 10", from: "Mexico", to: "Bole", price: 15 },
-    { id: "4fb96g75-6828-5673-c4gd-d4fd5f77bgb7", name: "Line 04", from: "Megenagna", to: "4-Kilo", price: 12 },
+    {
+      id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      name: "Line 10",
+      from: "Mexico",
+      to: "Bole",
+      price: 15,
+    },
+    {
+      id: "4fb96g75-6828-5673-c4gd-d4fd5f77bgb7",
+      name: "Line 04",
+      from: "Megenagna",
+      to: "4-Kilo",
+      price: 12,
+    },
   ];
 
-  // GPS Tracking Loop
+  // ✅ GPS Tracking Loop (SSR SAFE)
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!navigator.geolocation) return;
+
     let interval: NodeJS.Timeout;
+
     if (isOnline && activeTripId) {
       interval = setInterval(() => {
-        navigator.geolocation.getCurrentPosition((pos) => {
-          driverService.updateLocation(activeTripId, pos.coords.latitude, pos.coords.longitude);
-        }, (err) => console.error("GPS Error", err), { enableHighAccuracy: true });
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            driverService.updateLocation(
+              activeTripId,
+              pos.coords.latitude,
+              pos.coords.longitude
+            );
+          },
+          (err) => console.error("GPS Error:", err),
+          { enableHighAccuracy: true }
+        );
       }, 10000);
     }
-    return () => clearInterval(interval);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isOnline, activeTripId]);
 
-  // Start Shift Logic
+  // Start Shift
   const handleConfirmStart = async () => {
     if (!selectedRoute) return;
+
     try {
       const res = await driverService.createTrip({
         destination: selectedRoute.to,
         totalSeats: 16,
         routeId: selectedRoute.id,
-        busPlateNumber: "AA 3 B9876"
+        busPlateNumber: "AA 3 B9876",
       });
+
       const tripId = res.data.id;
+
       await driverService.startTrip(tripId);
 
       setActiveTripId(tripId);
       setIsOnline(true);
       setIsModalOpen(false);
-    } catch (err) {
+    } catch {
       alert("Shift start failed. Ensure you are an approved driver.");
     }
   };
 
-  // End Shift Logic
+  // End Shift
   const handleEndShift = async () => {
-    if (activeTripId) {
-      await driverService.completeTrip(activeTripId);
-      setIsOnline(false);
-      setActiveTripId(null);
-      setSelectedRoute(null);
-    }
+    if (!activeTripId) return;
+
+    await driverService.completeTrip(activeTripId);
+
+    setIsOnline(false);
+    setActiveTripId(null);
+    setSelectedRoute(null);
   };
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white flex flex-col md:flex-row">
       {/* SIDEBAR */}
       <aside className="w-72 bg-[#1e293b] border-r border-slate-800 hidden md:flex flex-col h-screen sticky top-0">
-        <div className="p-8 font-black text-2xl italic">GoBet <span className="text-green-500 not-italic">Driver</span></div>
+        <div className="p-8 font-black text-2xl italic">
+          GoBet <span className="text-green-500 not-italic">Driver</span>
+        </div>
+
         <nav className="flex-1 px-4 space-y-1">
-          {[{ id: "dashboard", label: "Active Route", icon: <Navigation size={20} /> },
-          { id: "scanner", label: "Scan Ticket", icon: <ScanLine size={20} /> },
-          { id: "earnings", label: "Earnings", icon: <Wallet size={20} /> },
-          { id: "history", label: "History", icon: <History size={20} /> },
-          { id: "support", label: "Support", icon: <LifeBuoy size={20} /> },
-          { id: "settings", label: "Settings", icon: <Settings size={20} /> },
-          { id: "map", label: "Live Map", icon: <Map size={20} /> },
+          {[
+            { id: "dashboard", label: "Active Route", icon: <Navigation size={20} /> },
+            { id: "scanner", label: "Scan Ticket", icon: <ScanLine size={20} /> },
+            { id: "earnings", label: "Earnings", icon: <Wallet size={20} /> },
+            { id: "history", label: "History", icon: <History size={20} /> },
+            { id: "support", label: "Support", icon: <LifeBuoy size={20} /> },
+            { id: "settings", label: "Settings", icon: <Settings size={20} /> },
+            { id: "map", label: "Live Map", icon: <Map size={20} /> },
           ].map((item) => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === item.id ? "bg-green-500 text-black shadow-lg" : "text-slate-400 hover:bg-slate-800"}`}>
-              {item.icon} {item.label}
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === item.id
+                  ? "bg-green-500 text-black shadow-lg"
+                  : "text-slate-400 hover:bg-slate-800"
+                }`}
+            >
+              {item.icon}
+              {item.label}
             </button>
           ))}
         </nav>
+
         <div className="p-6 bg-slate-900/50 m-4 rounded-[28px] border border-slate-800">
-          <button onClick={() => isOnline ? handleEndShift() : setIsModalOpen(true)}
-            className={`w-full py-4 rounded-xl font-black flex items-center justify-center gap-2 transition-all ${isOnline ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500 text-black'}`}>
-            <Power size={18} /> {isOnline ? "End Shift" : "Start Shift"}
+          <button
+            onClick={() => (isOnline ? handleEndShift() : setIsModalOpen(true))}
+            className={`w-full py-4 rounded-xl font-black flex items-center justify-center gap-2 transition-all ${isOnline
+                ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                : "bg-green-500 text-black"
+              }`}
+          >
+            <Power size={18} />
+            {isOnline ? "End Shift" : "Start Shift"}
           </button>
         </div>
       </aside>
@@ -104,8 +160,12 @@ export default function DriverDashboard() {
       <main className="flex-1 p-6 md:p-10 pb-32">
         <header className="flex justify-between items-end mb-10">
           <div>
-            <h2 className="text-3xl font-black italic tracking-tighter uppercase">{activeTab}</h2>
-            <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">Bus AA 3 B9876</p>
+            <h2 className="text-3xl font-black italic tracking-tighter uppercase">
+              {activeTab}
+            </h2>
+            <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">
+              Bus AA 3 B9876
+            </p>
           </div>
         </header>
 
@@ -122,25 +182,46 @@ export default function DriverDashboard() {
       {/* ROUTE MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#1e293b] w-full max-w-lg rounded-[40px] border border-slate-700 p-8 animate-in zoom-in-95">
+          <div className="bg-[#1e293b] w-full max-w-lg rounded-[40px] border border-slate-700 p-8">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-black italic">Select Route</h3>
-              <X className="cursor-pointer text-slate-500" onClick={() => setIsModalOpen(false)} />
+              <X
+                className="cursor-pointer text-slate-500"
+                onClick={() => setIsModalOpen(false)}
+              />
             </div>
+
             <div className="space-y-3">
               {availableRoutes.map((route) => (
-                <button key={route.id} onClick={() => setSelectedRoute(route)}
-                  className={`w-full p-6 rounded-3xl border-2 transition-all flex justify-between items-center ${selectedRoute?.id === route.id ? "border-green-500 bg-green-500/5" : "border-slate-800 bg-slate-900/50"}`}>
+                <button
+                  key={route.id}
+                  onClick={() => setSelectedRoute(route)}
+                  className={`w-full p-6 rounded-3xl border-2 transition-all flex justify-between items-center ${selectedRoute?.id === route.id
+                      ? "border-green-500 bg-green-500/5"
+                      : "border-slate-800 bg-slate-900/50"
+                    }`}
+                >
                   <div className="text-left">
-                    <p className="text-[10px] font-black text-green-500 uppercase">{route.name}</p>
-                    <p className="font-bold">{route.from} → {route.to}</p>
+                    <p className="text-[10px] font-black text-green-500 uppercase">
+                      {route.name}
+                    </p>
+                    <p className="font-bold">
+                      {route.from} → {route.to}
+                    </p>
                   </div>
-                  {selectedRoute?.id === route.id && <Check className="text-green-500" />}
+
+                  {selectedRoute?.id === route.id && (
+                    <Check className="text-green-500" />
+                  )}
                 </button>
               ))}
             </div>
-            <button disabled={!selectedRoute} onClick={handleConfirmStart}
-              className="w-full mt-8 py-5 bg-green-500 disabled:bg-slate-800 text-black font-black rounded-2xl">
+
+            <button
+              disabled={!selectedRoute}
+              onClick={handleConfirmStart}
+              className="w-full mt-8 py-5 bg-green-500 disabled:bg-slate-800 text-black font-black rounded-2xl"
+            >
               Confirm & Start Drive
             </button>
           </div>
